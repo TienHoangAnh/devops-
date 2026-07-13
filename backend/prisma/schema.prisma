@@ -1,0 +1,303 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum SectionType {
+  OVERVIEW
+  OBJECTIVES
+  THEORY
+  ARCHITECTURE
+  IMAGES
+  VIDEO
+  EXAMPLE
+  CODE
+  INTERACTIVE
+  PRACTICE
+  SOLUTION
+  SUMMARY
+  CHEAT_SHEET
+  REFERENCES
+}
+
+enum QuestionType {
+  MULTIPLE_CHOICE
+  TRUE_FALSE
+  FILL_BLANK
+  DRAG_DROP
+  MATCHING
+  ORDERING
+}
+
+enum ProgressStatus {
+  LOCKED
+  IN_PROGRESS
+  COMPLETED
+}
+
+model User {
+  id            String         @id @default(cuid())
+  name          String
+  email         String         @unique
+  password      String?
+  googleId      String?        @unique
+  verified      Boolean        @default(false)
+  avatar        String?
+  role          Role           @default(USER)
+  streak        Int            @default(0)
+  lastStudyDate DateTime?
+  studyMinutes  Int            @default(0)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  refreshTokens RefreshToken[]
+  progress      Progress[]
+  quizAttempts  QuizAttempt[]
+  bookmarks     Bookmark[]
+  notes         UserNote[]
+}
+
+model OTP {
+  id        String   @id @default(cuid())
+  email     String
+  code      String
+  type      String   @default("VERIFY")
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([email, type])
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+model Roadmap {
+  id          String    @id @default(cuid())
+  title       String
+  slug        String    @unique
+  description String?
+  order       Int
+  icon        String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  chapters    Chapter[]
+}
+
+model Chapter {
+  id          String     @id @default(cuid())
+  roadmapId   String
+  roadmap     Roadmap    @relation(fields: [roadmapId], references: [id], onDelete: Cascade)
+  title       String
+  slug        String
+  description String?
+  order       Int
+  icon        String?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  lessons     Lesson[]
+  flashcards  Flashcard[]
+
+  @@unique([roadmapId, slug])
+  @@index([roadmapId])
+}
+
+model Lesson {
+  id          String          @id @default(cuid())
+  chapterId   String
+  chapter     Chapter         @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+  title       String
+  slug        String
+  description String?
+  order       Int
+  duration    Int             @default(15)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  sections    LessonSection[]
+  quiz        Quiz?
+  progress    Progress[]
+  bookmarks   Bookmark[]
+  notes       UserNote[]
+  tags        LessonTag[]
+
+  @@unique([chapterId, slug])
+  @@index([chapterId])
+}
+
+model LessonSection {
+  id        String      @id @default(cuid())
+  lessonId  String
+  lesson    Lesson      @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  type      SectionType
+  title     String?
+  content   String      @db.Text
+  order     Int
+  metadata  Json?
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  @@index([lessonId])
+}
+
+model Quiz {
+  id          String     @id @default(cuid())
+  lessonId    String     @unique
+  lesson      Lesson     @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  title       String
+  description String?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  questions   Question[]
+  attempts    QuizAttempt[]
+}
+
+model Question {
+  id          String       @id @default(cuid())
+  quizId      String
+  quiz        Quiz         @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  type        QuestionType
+  question    String       @db.Text
+  explanation String?      @db.Text
+  order       Int
+  points      Int          @default(1)
+  metadata    Json?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  answers     Answer[]
+
+  @@index([quizId])
+}
+
+model Answer {
+  id         String   @id @default(cuid())
+  questionId String
+  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  text       String
+  isCorrect  Boolean  @default(false)
+  order      Int      @default(0)
+  metadata   Json?
+
+  @@index([questionId])
+}
+
+model QuizAttempt {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  quizId      String
+  quiz        Quiz     @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  score       Int
+  totalPoints Int
+  correct     Int
+  wrong       Int
+  answers     Json
+  timeSpent   Int?
+  createdAt   DateTime @default(now())
+
+  @@index([userId])
+  @@index([quizId])
+}
+
+model Progress {
+  id          String         @id @default(cuid())
+  userId      String
+  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lessonId    String
+  lesson      Lesson         @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  status      ProgressStatus @default(IN_PROGRESS)
+  completed   Boolean        @default(false)
+  percent     Int            @default(0)
+  lastSection String?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@unique([userId, lessonId])
+  @@index([userId])
+}
+
+model Bookmark {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lessonId  String
+  lesson    Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  type      String   @default("lesson")
+  note      String?
+  createdAt DateTime @default(now())
+
+  @@unique([userId, lessonId, type])
+  @@index([userId])
+}
+
+model Flashcard {
+  id        String   @id @default(cuid())
+  chapterId String
+  chapter   Chapter  @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+  front     String
+  back      String   @db.Text
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([chapterId])
+}
+
+model UserNote {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lessonId  String
+  lesson    Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  content   String   @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, lessonId])
+  @@index([userId])
+}
+
+model Category {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  slug        String   @unique
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  tags        Tag[]
+}
+
+model Tag {
+  id         String      @id @default(cuid())
+  name       String
+  slug       String
+  categoryId String?
+  category   Category?   @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  createdAt  DateTime    @default(now())
+  lessons    LessonTag[]
+
+  @@unique([slug])
+}
+
+model LessonTag {
+  lessonId String
+  tagId    String
+  lesson   Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  tag      Tag    @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([lessonId, tagId])
+}

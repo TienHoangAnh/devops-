@@ -1,0 +1,93 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+
+  --color-background: #fafafa;
+  --color-foreground: #0a0a0a;
+  --color-card: #ffffff;
+  --color-card-foreground: #0a0a0a;
+  --color-primary: #2563eb;
+  --color-primary-foreground: #ffffff;
+  --color-secondary: #f4f4f5;
+  --color-secondary-foreground: #18181b;
+  --color-muted: #f4f4f5;
+  --color-muted-foreground: #71717a;
+  --color-accent: #f4f4f5;
+  --color-accent-foreground: #18181b;
+  --color-destructive: #ef4444;
+  --color-border: #e4e4e7;
+  --color-input: #e4e4e7;
+  --color-ring: #2563eb;
+  --color-success: #22c55e;
+  --color-warning: #f59e0b;
+
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+}
+
+.dark {
+  --color-background: #09090b;
+  --color-foreground: #fafafa;
+  --color-card: #18181b;
+  --color-card-foreground: #fafafa;
+  --color-primary: #3b82f6;
+  --color-primary-foreground: #ffffff;
+  --color-secondary: #27272a;
+  --color-secondary-foreground: #fafafa;
+  --color-muted: #27272a;
+  --color-muted-foreground: #a1a1aa;
+  --color-accent: #27272a;
+  --color-accent-foreground: #fafafa;
+  --color-border: #27272a;
+  --color-input: #27272a;
+}
+
+* {
+  border-color: var(--color-border);
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--color-background);
+  color: var(--color-foreground);
+  -webkit-font-smoothing: antialiased;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+.prose pre {
+  background: #1e1e1e !important;
+  border-radius: var(--radius-lg);
+  padding: 1rem;
+  overflow-x: auto;
+}
+
+.prose code {
+  font-family: var(--font-mono);
+  font-size: 0.875em;
+}
+
+.prose :not(pre) > code {
+  background: var(--color-muted);
+  padding: 0.2em 0.4em;
+  border-radius: var(--radius-sm);
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.skeleton {
+  background: linear-gradient(90deg, var(--color-muted) 25%, var(--color-border) 50%, var(--color-muted) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
