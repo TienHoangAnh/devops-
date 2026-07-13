@@ -10,11 +10,12 @@ import contentRoutes from './routes/content.js';
 import quizRoutes from './routes/quiz.js';
 import userRoutes, { bookmarkRouter, notesRouter } from './routes/user.js';
 import adminRoutes from './routes/admin.js';
+import commentRoutes from './routes/comments.js';
 
 const app = express();
 
 const allowedOrigins = [
-  config.frontendUrl,
+  ...config.frontendUrl.split(',').map((origin) => origin.trim()),
   'http://localhost:5173',
   'http://127.0.0.1:5173',
   'http://localhost:3000',
@@ -69,6 +70,7 @@ app.use('/api/progress', userRoutes);
 app.use('/api/bookmarks', bookmarkRouter);
 app.use('/api/notes', notesRouter);
 app.use('/api/admin', adminRoutes);
+app.use('/api/comments', commentRoutes);
 
 app.use((_req, res) => {
   res.status(404).json({ error: 'Not found' });

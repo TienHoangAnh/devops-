@@ -60,3 +60,9 @@ export const quizSubmitSchema = z.object({
   })),
   timeSpent: z.number().optional(),
 });
+
+export const commentSchema = z.object({
+  lessonId: z.string(),
+  parentId: z.string().optional(),
+  content: z.string().trim().min(1).max(2_000),
+});

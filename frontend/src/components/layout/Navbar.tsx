@@ -2,9 +2,9 @@ import { Link, useLocation } from 'react-router-dom';
 
 import {
 
-  Map, LogOut, LogIn,
+  LogOut, LogIn,
 
-  Moon, Sun, Search, Menu, X, Shield, User, BookOpen,
+  Moon, Sun, Menu, X, Shield, User, BookOpen,
 
 } from 'lucide-react';
 

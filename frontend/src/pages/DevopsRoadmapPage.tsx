@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 
-interface Topic {
+export interface Topic {
   id: string;
   title: string;
   summary: string;
@@ -13,7 +13,7 @@ interface Topic {
   recommended: string[];
 }
 
-const topics: Topic[] = [
+export const topics: Topic[] = [
   {
     id: 'foundation',
     title: '1. Foundation',
@@ -273,10 +273,10 @@ export function DevopsRoadmapPage() {
           <CardContent className="space-y-4">
             <p className="text-sm text-muted-foreground">{currentTopic?.summary}</p>
             <ul className="space-y-2 text-sm">
-              {currentTopic?.details.map((item) => (
+              {currentTopic?.details.map((item, index) => (
                 <li key={item} className="flex gap-2">
                   <ChevronRight className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-                  <span>{item}</span>
+                  <Link to={`/learn/${currentTopic.id}/${index}`} className="text-primary hover:underline">{item}</Link>
                 </li>
               ))}
             </ul>
@@ -292,7 +292,8 @@ export function DevopsRoadmapPage() {
               <Button onClick={() => toggleComplete(currentTopic.id)}>
                 {completed.includes(currentTopic.id) ? 'Bỏ đánh dấu hoàn thành' : 'Đánh dấu đã học'}
               </Button>
-              <Link to="/roadmap" className="text-sm text-primary hover:underline">Xem roadmap chung</Link>
+              {/* <Link to="/roadmap" className="text-sm text-primary hover:underline">Xem roadmap chung</Link> */}
+              <Link to="/quiz" className="text-sm text-primary hover:underline">Ôn tập tổng hợp</Link>
             </div>
           </CardContent>
         </Card>

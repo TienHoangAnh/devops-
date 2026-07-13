@@ -12,7 +12,7 @@ export function QuizPage() {
 
   const { data: quiz, isLoading } = useQuery({
     queryKey: ['quiz', slug],
-    queryFn: () => api.get<Quiz>(`/quiz/${slug}`, accessToken),
+    queryFn: () => api.get<Quiz>(`/quiz/${slug}?random=true`, accessToken),
     enabled: !!slug,
   });
 

@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { PageSkeleton } from '@/components/ui/skeleton';
 import { LessonSectionView } from '@/components/lesson/LessonSection';
 import { NotesPanel } from '@/components/lesson/NotesPanel';
+import { CommentsPanel } from '@/components/lesson/CommentsPanel';
 import { formatDuration } from '@/lib/utils';
 import type { Lesson } from '@/types';
 
@@ -115,6 +116,9 @@ export function LessonPage() {
 
         <div className="mb-8">
           <NotesPanel lessonId={lesson.id} initialContent={lesson.userNote?.content} />
+        </div>
+        <div className="mb-8">
+          <CommentsPanel lessonId={lesson.id} />
         </div>
 
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-8 border-t border-border">

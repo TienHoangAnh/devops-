@@ -80,7 +80,10 @@ router.get('/:lessonSlug', async (req, res) => {
     return res.status(404).json({ error: 'Quiz not found' });
   }
 
-  res.json(quiz);
+  const questions = req.query.random === 'true'
+    ? [...quiz.questions].sort(() => Math.random() - 0.5)
+    : quiz.questions;
+  res.json({ ...quiz, questions });
 });
 
 router.post('/submit', optionalAuth, validateBody(quizSubmitSchema), async (req: AuthRequest, res: Response) => {

@@ -1,16 +1,17 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Navigate, Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'sonner';
 import { useEffect } from 'react';
 import { Navbar, Footer } from '@/components/layout/Navbar';
 import { LandingPage } from '@/pages/LandingPage';
 import { LoginPage, RegisterPage, VerifyOtpPage, ForgotPasswordPage, ResetPasswordPage } from '@/pages/AuthPages';
-import { RoadmapPage, ChapterPage } from '@/pages/RoadmapPage';
+import { ChapterPage } from '@/pages/RoadmapPage';
 import { LessonPage } from '@/pages/LessonPage';
 import { QuizPage } from '@/pages/QuizPage';
 import { DashboardPage, BookmarksPage, SettingsPage, AdminPage } from '@/pages/DashboardPage';
 import { ProfilePage } from '@/pages/ProfilePage';
 import { DevopsRoadmapPage } from '@/pages/DevopsRoadmapPage';
+import { PracticeQuizPage, StudyUnitPage } from '@/pages/PracticePages';
 import { useThemeStore } from '@/stores';
 
 const queryClient = new QueryClient({
@@ -47,8 +48,10 @@ export default function App() {
             <Route path="/verify-otp" element={<VerifyOtpPage />} />
             <Route path="/forgot-password" element={<ForgotPasswordPage />} />
             <Route path="/reset-password" element={<ResetPasswordPage />} />
-            <Route path="/roadmap" element={<RoadmapPage />} />
+            <Route path="/roadmap" element={<Navigate to="/devops-roadmap" replace />} />
             <Route path="/devops-roadmap" element={<DevopsRoadmapPage />} />
+            <Route path="/learn/:topicId/:lessonIndex" element={<StudyUnitPage />} />
+            <Route path="/quiz" element={<PracticeQuizPage />} />
             <Route path="/chapter/:slug" element={<ChapterPage />} />
             <Route path="/lesson/:slug" element={<LessonPage />} />
             <Route path="/quiz/:slug" element={<QuizPage />} />

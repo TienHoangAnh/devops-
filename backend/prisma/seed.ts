@@ -4,24 +4,19 @@ import bcrypt from 'bcryptjs';
 const prisma = new PrismaClient();
 
 const CHAPTERS = [
-  { title: 'Linux', slug: 'linux', icon: 'terminal', order: 1 },
-  { title: 'Networking', slug: 'networking', icon: 'network', order: 2 },
-  { title: 'Git', slug: 'git', icon: 'git-branch', order: 3 },
-  { title: 'Docker', slug: 'docker', icon: 'container', order: 4 },
-  { title: 'CI/CD', slug: 'cicd', icon: 'workflow', order: 5 },
-  { title: 'Kubernetes', slug: 'kubernetes', icon: 'boxes', order: 6 },
-  { title: 'Cloud', slug: 'cloud', icon: 'cloud', order: 7 },
-  { title: 'Terraform', slug: 'terraform', icon: 'layers', order: 8 },
-  { title: 'Monitoring', slug: 'monitoring', icon: 'activity', order: 9 },
-  { title: 'Security', slug: 'security', icon: 'shield', order: 10 },
-  { title: 'Linux Project', slug: 'linux-project', icon: 'folder', order: 11 },
-  { title: 'Kubernetes Project', slug: 'k8s-project', icon: 'rocket', order: 12 },
-  { title: 'DevOps Interview', slug: 'interview', icon: 'message-circle', order: 13 },
+  { title: 'Foundation', slug: 'foundation', icon: 'terminal', order: 1 },
+  { title: 'Containers & System Administration', slug: 'containers', icon: 'container', order: 2 },
+  { title: 'AWS & Infrastructure as Code', slug: 'cloud', icon: 'cloud', order: 3 },
+  { title: 'Continuous Integration & Delivery', slug: 'cicd', icon: 'workflow', order: 4 },
+  { title: 'Kubernetes & GitOps', slug: 'kubernetes', icon: 'boxes', order: 5 },
+  { title: 'Observability & Operations', slug: 'observability', icon: 'activity', order: 6 },
+  { title: 'Security, Production & Career', slug: 'security', icon: 'shield', order: 7 },
 ];
 
 async function main() {
   console.log('Seeding database...');
 
+  await prisma.comment.deleteMany();
   await prisma.quizAttempt.deleteMany();
   await prisma.progress.deleteMany();
   await prisma.bookmark.deleteMany();
@@ -86,12 +81,11 @@ async function main() {
       },
     });
 
-    if (ch.slug === 'linux') {
+    if (ch.slug === 'foundation') {
       await seedLinuxChapter(chapter.id);
-    } else if (ch.slug === 'docker') {
-      await seedDockerChapter(chapter.id);
-    } else if (ch.slug === 'git') {
       await seedGitChapter(chapter.id);
+    } else if (ch.slug === 'containers') {
+      await seedDockerChapter(chapter.id);
     } else {
       await prisma.lesson.create({
         data: {

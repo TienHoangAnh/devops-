@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, Navigate } from 'react-router-dom';
 import { useState } from 'react';
 import { motion } from 'framer-motion';
@@ -297,6 +297,8 @@ export function SettingsPage() {
 export function AdminPage() {
   const { isAdmin, accessToken } = useAuthStore();
   const [tab, setTab] = useState<'overview' | 'users' | 'content'>('overview');
+  const [roadmapTitle, setRoadmapTitle] = useState('');
+  const queryClient = useQueryClient();
 
   if (!isAdmin()) return <Navigate to="/" replace />;
 
@@ -315,6 +317,17 @@ export function AdminPage() {
     queryKey: ['admin-roadmaps'],
     queryFn: () => api.get<{ id: string; title: string; chapters: { id: string; title: string; lessons: { id: string; title: string; slug: string }[] }[] }[]>('/admin/roadmaps', accessToken),
     enabled: tab === 'content',
+  });
+
+  const updateRole = useMutation({
+    mutationFn: ({ id, role }: { id: string; role: string }) => api.patch(`/admin/users/${id}/role`, { role }, accessToken),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin-users'] }),
+  });
+  const createRoadmap = useMutation({
+    mutationFn: () => api.post('/admin/roadmaps', {
+      title: roadmapTitle.trim(), slug: roadmapTitle.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''), order: (roadmaps?.length || 0) + 1,
+    }, accessToken),
+    onSuccess: () => { setRoadmapTitle(''); queryClient.invalidateQueries({ queryKey: ['admin-roadmaps'] }); },
   });
 
   return (
@@ -366,7 +379,7 @@ export function AdminPage() {
                     <tr key={u.id} className="border-b border-border/50">
                       <td className="py-3 pr-4 font-medium">{u.name}</td>
                       <td className="py-3 pr-4">{u.email}</td>
-                      <td className="py-3 pr-4">{u.role}</td>
+                      <td className="py-3 pr-4"><select value={u.role} onChange={(e) => updateRole.mutate({ id: u.id, role: e.target.value })} className="rounded border border-input bg-background px-2 py-1 text-xs"><option value="USER">USER</option><option value="ADMIN">ADMIN</option></select></td>
                       <td className="py-3 pr-4">{u.streak}</td>
                       <td className="py-3">{u.verified ? '✓' : '—'}</td>
                     </tr>
@@ -380,6 +393,13 @@ export function AdminPage() {
 
       {tab === 'content' && (
         <div className="space-y-4">
+          <Card>
+            <CardHeader><CardTitle className="text-base">Create roadmap</CardTitle></CardHeader>
+            <CardContent className="flex flex-col gap-2 sm:flex-row">
+              <input value={roadmapTitle} onChange={(e) => setRoadmapTitle(e.target.value)} placeholder="Roadmap title" className="flex-1 rounded-lg border border-input bg-background px-3 py-2 text-sm" />
+              <Button disabled={!roadmapTitle.trim() || createRoadmap.isPending} onClick={() => createRoadmap.mutate()}>{createRoadmap.isPending ? 'Creating…' : 'Create'}</Button>
+            </CardContent>
+          </Card>
           {roadmaps?.map((rm) => (
             <Card key={rm.id}>
               <CardHeader><CardTitle>{rm.title}</CardTitle></CardHeader>

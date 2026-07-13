@@ -178,12 +178,6 @@ router.get('/search', async (req, res) => {
         },
 
         // nếu schema có Topic thì thêm
-        topic: {
-          select: {
-            id: true,
-            title: true,
-          },
-        },
       },
     });
 
@@ -196,10 +190,9 @@ router.get('/search', async (req, res) => {
                 'THEORY',
                 'CHEAT_SHEET',
                 'CODE',
-                'LAB',
-                'QUIZ',
-                'PROJECT',
-                'FLASHCARD',
+                'PRACTICE',
+                'INTERACTIVE',
+                'SUMMARY',
               ],
             },
           },
@@ -232,12 +225,6 @@ router.get('/search', async (req, res) => {
               },
             },
 
-            topic: {
-              select: {
-                id: true,
-                title: true,
-              },
-            },
           },
         },
       },

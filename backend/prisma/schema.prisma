@@ -63,6 +63,7 @@ model User {
   quizAttempts  QuizAttempt[]
   bookmarks     Bookmark[]
   notes         UserNote[]
+  comments      Comment[]
 }
 
 model OTP {
@@ -134,6 +135,7 @@ model Lesson {
   bookmarks   Bookmark[]
   notes       UserNote[]
   tags        LessonTag[]
+  comments    Comment[]
 
   @@unique([chapterId, slug])
   @@index([chapterId])
@@ -268,6 +270,23 @@ model UserNote {
   updatedAt DateTime @updatedAt
 
   @@unique([userId, lessonId])
+  @@index([userId])
+}
+
+model Comment {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lessonId  String
+  lesson    Lesson    @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  parentId  String?
+  parent    Comment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies   Comment[] @relation("CommentReplies")
+  content   String    @db.Text
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@index([lessonId, createdAt])
   @@index([userId])
 }
 
