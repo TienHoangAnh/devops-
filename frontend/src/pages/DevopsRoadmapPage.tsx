@@ -1,9 +1,12 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { CheckCircle2, Circle, ChevronRight, BookOpen, Sparkles, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
+import { api } from '@/lib/api';
+import { useAuthStore } from '@/stores';
 
 export interface Topic {
   id: string;
@@ -194,24 +197,57 @@ export const topics: Topic[] = [
 ];
 
 export function DevopsRoadmapPage() {
-  const [completed, setCompleted] = useState<string[]>(() => {
-    if (typeof window === 'undefined') return [];
-
-    try {
-      const saved = window.localStorage.getItem("devops-roadmap-completed");
-      const parsed: string[] = saved ? JSON.parse(saved) : [];
-
-      return parsed.filter(id =>
-        topics.some(topic => topic.id === id)
-      );
-    } catch {
-      return [];
-    }
+  const { accessToken, isAuthenticated } = useAuthStore();
+  const queryClient = useQueryClient();
+  const { data: progress = [] } = useQuery({
+    queryKey: ['roadmap-progress'],
+    queryFn: () => api.get<{ topicId: string; completed: boolean }[]>('/progress/roadmap', accessToken),
+    enabled: isAuthenticated(),
+  });
+  const completed = progress
+    .filter((item) => item.completed && topics.some((topic) => topic.id === item.topicId))
+    .map((item) => item.topicId);
+  const updateProgress = useMutation({
+    mutationFn: ({ topicId, completed: isCompleted }: { topicId: string; completed: boolean }) =>
+      api.put(`/progress/roadmap/${topicId}`, { completed: isCompleted }, accessToken),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['roadmap-progress'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+    },
   });
 
+  // Preserve progress created by the previous browser-only implementation.
+  // Once copied, the server becomes the source of truth for this user.
   useEffect(() => {
-    window.localStorage.setItem('devops-roadmap-completed', JSON.stringify(completed));
-  }, [completed]);
+    if (!isAuthenticated()) return;
+
+    let legacyTopicIds: string[] = [];
+    try {
+      const saved = window.localStorage.getItem('devops-roadmap-completed');
+      const parsed: unknown = saved ? JSON.parse(saved) : [];
+      if (Array.isArray(parsed)) {
+        legacyTopicIds = parsed.filter(
+          (id): id is string => typeof id === 'string' && topics.some((topic) => topic.id === id)
+        );
+      }
+    } catch {
+      return;
+    }
+
+    const missingTopicIds = legacyTopicIds.filter((topicId) => !completed.includes(topicId));
+    if (!missingTopicIds.length) {
+      if (legacyTopicIds.length) window.localStorage.removeItem('devops-roadmap-completed');
+      return;
+    }
+
+    void Promise.all(
+      missingTopicIds.map((topicId) => api.put(`/progress/roadmap/${topicId}`, { completed: true }, accessToken))
+    ).then(() => {
+      window.localStorage.removeItem('devops-roadmap-completed');
+      queryClient.invalidateQueries({ queryKey: ['roadmap-progress'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+    });
+  }, [accessToken, completed, isAuthenticated, queryClient]);
 
   const progressPercent = useMemo(() => {
     if (!topics.length) return 0;
@@ -235,7 +271,8 @@ export function DevopsRoadmapPage() {
 
   const toggleComplete = (topicId: string) => {
     if (!isUnlocked(topicId)) return;
-    setCompleted((prev) => (prev.includes(topicId) ? prev.filter((id) => id !== topicId) : [...prev, topicId]));
+    if (!isAuthenticated()) return;
+    updateProgress.mutate({ topicId, completed: !completed.includes(topicId) });
   };
 
   const completedCount = completed.length;

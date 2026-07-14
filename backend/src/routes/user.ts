@@ -72,6 +72,31 @@ router.post('/', authenticate, validateBody(progressSchema), async (req: AuthReq
   res.json(progress);
 });
 
+router.get('/roadmap', authenticate, async (req: AuthRequest, res: Response) => {
+  const progress = await prisma.roadmapTopicProgress.findMany({
+    where: { userId: req.user!.id, completed: true },
+    select: { topicId: true, completed: true, updatedAt: true },
+    orderBy: { updatedAt: 'desc' },
+  });
+  res.json(progress);
+});
+
+router.put('/roadmap/:topicId', authenticate, async (req: AuthRequest, res: Response) => {
+  const { completed } = req.body;
+  if (typeof completed !== 'boolean') {
+    return res.status(400).json({ error: 'completed must be a boolean' });
+  }
+
+  const topicId = paramString(req.params.topicId);
+  const progress = await prisma.roadmapTopicProgress.upsert({
+    where: { userId_topicId: { userId: req.user!.id, topicId } },
+    create: { userId: req.user!.id, topicId, completed },
+    update: { completed },
+    select: { topicId: true, completed: true, updatedAt: true },
+  });
+  res.json(progress);
+});
+
 router.get('/dashboard', authenticate, async (req: AuthRequest, res: Response) => {
   const userId = req.user!.id;
 

@@ -38,36 +38,24 @@ router.post('/register', validateBody(registerSchema), async (req, res) => {
   }
 
   const hashedPassword = await bcrypt.hash(password, 12);
-  const otp = generateOTP();
-  const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
-  const isDevelopment = (process.env.NODE_ENV || 'development').toLowerCase() === 'development';
-
   await prisma.oTP.deleteMany({ where: { email, type: 'VERIFY' } });
-  await prisma.oTP.create({ data: { email, code: otp, type: 'VERIFY', expiresAt } });
 
   let user;
   if (existing) {
     user = await prisma.user.update({
       where: { email },
-      data: { name, password: hashedPassword, verified: isDevelopment },
+      data: { name, password: hashedPassword, verified: true },
     });
   } else {
     user = await prisma.user.create({
-      data: { name, email, password: hashedPassword, verified: isDevelopment },
+      data: { name, email, password: hashedPassword, verified: true },
     });
   }
 
-  try {
-    await sendOTPEmail(email, otp, 'VERIFY');
-  } catch (error) {
-    console.warn('OTP email send failed; OTP remains stored for manual verification.', error);
-  }
-
+  const tokens = await createTokens(user.id, user.email, user.role);
   res.json({
-    message: isDevelopment
-      ? 'OTP generated. If email delivery is not configured, check the server console for the code.'
-      : 'OTP sent to your email',
-    email,
+    user: { id: user.id, name: user.name, email: user.email, role: user.role, avatar: user.avatar },
+    ...tokens,
   });
 });
 
@@ -104,14 +92,13 @@ router.post('/login', validateBody(loginSchema), async (req, res) => {
     return res.status(401).json({ error: 'Invalid credentials' });
   }
 
-  const isDevelopment = (process.env.NODE_ENV || 'development').toLowerCase() === 'development';
-  if (!user.verified && !isDevelopment) {
-    return res.status(401).json({ error: 'Invalid credentials' });
-  }
-
   const valid = await bcrypt.compare(password, user.password);
   if (!valid) {
     return res.status(401).json({ error: 'Invalid credentials' });
+  }
+
+  if (!user.verified) {
+    await prisma.user.update({ where: { id: user.id }, data: { verified: true } });
   }
 
   const tokens = await createTokens(user.id, user.email, user.role);

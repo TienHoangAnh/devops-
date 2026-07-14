@@ -6,51 +6,27 @@ import { api } from '@/lib/api';
 import { useAuthStore } from '@/stores';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { PageSkeleton } from '@/components/ui/skeleton';
-import type { DashboardData } from '@/types';
+import { topics } from '@/pages/DevopsRoadmapPage';
 
 export function ProfilePage() {
   const { user, accessToken, isAuthenticated } = useAuthStore();
 
   if (!isAuthenticated()) return <Navigate to="/login" replace />;
 
-  const { data, isLoading } = useQuery({
-    queryKey: ['dashboard'],
-    queryFn: () => api.get<DashboardData>('/progress/dashboard', accessToken),
+  const { data: roadmapProgress = [], isLoading } = useQuery({
+    queryKey: ['roadmap-progress'],
+    queryFn: () => api.get<{ topicId: string; completed: boolean }[]>('/progress/roadmap', accessToken),
   });
 
   if (isLoading) return <PageSkeleton />;
 
-  const stats = data?.stats;
-
-  const roadmapTopics = [
-  'foundation',
-  'containers',
-  'cloud',
-  'cicd',
-  'kubernetes',
-  'observability',
-  'security',
-];
-
-const completedRoadmap = (() => {
-  try {
-    const saved = localStorage.getItem('devops-roadmap-completed');
-    if (!saved) return [];
-    const parsed: string[] = JSON.parse(saved);
-
-    return parsed.filter((id) => roadmapTopics.includes(id));
-  } catch {
-    return [];
-  }
-})();
-
-const roadmapProgress = Math.round(
-  (completedRoadmap.length / roadmapTopics.length) * 100
-);
-
-const currentStage =
-  roadmapTopics.find((id) => !completedRoadmap.includes(id)) ??
-  roadmapTopics[roadmapTopics.length - 1];
+  const completedRoadmap = roadmapProgress.filter(
+    (item) => item.completed && topics.some((topic) => topic.id === item.topicId)
+  );
+  const roadmapTotal = topics.length;
+  const roadmapPercent = roadmapTotal ? Math.round((completedRoadmap.length / roadmapTotal) * 100) : 0;
+  const completedTopicIds = new Set(completedRoadmap.map((item) => item.topicId));
+  const currentStage = topics.find((topic) => !completedTopicIds.has(topic.id)) ?? topics[topics.length - 1];
   
   return (
     <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
@@ -90,8 +66,7 @@ const currentStage =
           </Card>
         </div>
 
-        {stats && (
-          <Card>
+        <Card>
   <CardHeader>
     <CardTitle>DevOps Roadmap Progress</CardTitle>
   </CardHeader>
@@ -102,7 +77,7 @@ const currentStage =
         <BookOpen className="h-5 w-5 text-blue-500" />
         <div>
           <p className="text-2xl font-bold">
-            {completedRoadmap.length}/{roadmapTopics.length}
+            {completedRoadmap.length}/{roadmapTotal}
           </p>
           <p className="text-xs text-muted-foreground">
             Stages completed
@@ -114,7 +89,7 @@ const currentStage =
         <Trophy className="h-5 w-5 text-yellow-500" />
         <div>
           <p className="text-2xl font-bold">
-            {roadmapProgress}%
+            {roadmapPercent}%
           </p>
           <p className="text-xs text-muted-foreground">
             Overall progress
@@ -126,7 +101,7 @@ const currentStage =
         <Flame className="h-5 w-5 text-orange-500" />
         <div>
           <p className="text-lg font-bold capitalize">
-            {currentStage}
+            {currentStage.title}
           </p>
           <p className="text-xs text-muted-foreground">
             Current stage
@@ -138,7 +113,7 @@ const currentStage =
         <Clock className="h-5 w-5 text-green-500" />
         <div>
           <p className="text-2xl font-bold">
-            {roadmapTopics.length - completedRoadmap.length}
+            {roadmapTotal - completedRoadmap.length}
           </p>
           <p className="text-xs text-muted-foreground">
             Stages remaining
@@ -147,8 +122,7 @@ const currentStage =
       </div>
     </div>
   </CardContent>
-</Card>
-        )}
+        </Card>
       </motion.div>
     </div>
   );

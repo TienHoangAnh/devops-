@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Link, Navigate } from 'react-router-dom';
-import { useState } from 'react';
+import { Link, Navigate, useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import {
   BookOpen, Trophy, Flame, Clock, TrendingUp, ArrowRight, BarChart3, Award, Calendar,
@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { PageSkeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import type { DashboardData } from '@/types';
+import { topics } from '@/pages/DevopsRoadmapPage';
 
 function buildStudyDays(chapterProgress?: { updatedAt: string }[]): Set<string> {
   const days = new Set<string>();
@@ -78,6 +79,7 @@ function Achievements({ stats }: { stats: DashboardData['stats'] }) {
 
 export function DashboardPage() {
   const { accessToken, isAuthenticated } = useAuthStore();
+  const queryClient = useQueryClient();
 
   if (!isAuthenticated()) return <Navigate to="/login" replace />;
 
@@ -85,15 +87,56 @@ export function DashboardPage() {
     queryKey: ['dashboard'],
     queryFn: () => api.get<DashboardData>('/progress/dashboard', accessToken),
   });
+  const { data: roadmapProgress = [] } = useQuery({
+    queryKey: ['roadmap-progress'],
+    queryFn: () => api.get<{ topicId: string; completed: boolean; updatedAt: string }[]>('/progress/roadmap', accessToken),
+  });
+
+  // Move progress from the old browser-only version before rendering the
+  // dashboard, so returning users see their existing learning data here too.
+  useEffect(() => {
+    let legacyTopicIds: string[] = [];
+    try {
+      const saved = window.localStorage.getItem('devops-roadmap-completed');
+      const parsed: unknown = saved ? JSON.parse(saved) : [];
+      if (Array.isArray(parsed)) {
+        legacyTopicIds = parsed.filter(
+          (id): id is string => typeof id === 'string' && topics.some((topic) => topic.id === id)
+        );
+      }
+    } catch {
+      return;
+    }
+
+    const savedTopicIds = new Set(roadmapProgress.map((item) => item.topicId));
+    const missingTopicIds = legacyTopicIds.filter((topicId) => !savedTopicIds.has(topicId));
+    if (!missingTopicIds.length) {
+      if (legacyTopicIds.length) window.localStorage.removeItem('devops-roadmap-completed');
+      return;
+    }
+
+    void Promise.all(
+      missingTopicIds.map((topicId) => api.put(`/progress/roadmap/${topicId}`, { completed: true }, accessToken))
+    ).then(() => {
+      window.localStorage.removeItem('devops-roadmap-completed');
+      queryClient.invalidateQueries({ queryKey: ['roadmap-progress'] });
+    });
+  }, [accessToken, queryClient, roadmapProgress]);
 
   if (isLoading) return <PageSkeleton />;
   if (!data) return null;
 
   const { stats, continueLesson, recommendedNext, recentQuizzes, chapterProgress } = data;
-  const studyDays = buildStudyDays(chapterProgress);
+  const completedTopics = roadmapProgress.filter(
+    (item) => item.completed && topics.some((topic) => topic.id === item.topicId)
+  );
+  const learningTotal = topics.length;
+  const learningCompleted = completedTopics.length;
+  const learningPercent = learningTotal ? Math.round((learningCompleted / learningTotal) * 100) : 0;
+  const studyDays = buildStudyDays([...(chapterProgress || []), ...completedTopics]);
 
   const statCards = [
-    { icon: BookOpen, label: 'Lessons Done', value: `${stats.completedLessons}/${stats.totalLessons}`, color: 'text-blue-500' },
+    { icon: BookOpen, label: 'Roadmap Done', value: `${learningCompleted}/${learningTotal}`, color: 'text-blue-500' },
     { icon: Trophy, label: 'Quiz Average', value: `${stats.quizAverage}%`, color: 'text-yellow-500' },
     { icon: Flame, label: 'Streak', value: `${stats.streak} days`, color: 'text-orange-500' },
     { icon: Clock, label: 'Study Time', value: `${stats.studyHours}h`, color: 'text-green-500' },
@@ -112,11 +155,11 @@ export function DashboardPage() {
             <span className="font-semibold flex items-center gap-2">
               <TrendingUp className="h-5 w-5 text-primary" /> Overall Progress
             </span>
-            <span className="text-2xl font-bold text-primary">{stats.progressPercent}%</span>
+            <span className="text-2xl font-bold text-primary">{learningPercent}%</span>
           </div>
-          <Progress value={stats.progressPercent} className="h-3" />
+          <Progress value={learningPercent} className="h-3" />
           <p className="text-sm text-muted-foreground mt-2">
-            {stats.completedChapters} of {stats.totalChapters} chapters completed
+            {learningCompleted} of {learningTotal} roadmap topics completed
           </p>
         </CardContent>
       </Card>
@@ -267,6 +310,7 @@ export function BookmarksPage() {
 export function SettingsPage() {
   const { user, logout, isAuthenticated } = useAuthStore();
   const { theme, toggleTheme } = useThemeStore();
+  const navigate = useNavigate();
 
   if (!isAuthenticated()) return <Navigate to="/login" replace />;
 
@@ -289,7 +333,7 @@ export function SettingsPage() {
           </Button>
         </CardContent>
       </Card>
-      <Button variant="destructive" onClick={logout}>Sign Out</Button>
+      <Button variant="destructive" onClick={() => { logout(); navigate('/', { replace: true }); }}>Sign Out</Button>
     </div>
   );
 }

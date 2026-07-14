@@ -1,10 +1,11 @@
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 
 import {
 
   LogOut, LogIn,
 
   Moon, Sun, Menu, X, Shield, User, BookOpen,
+  LayoutDashboard, Bookmark
 
 } from 'lucide-react';
 
@@ -29,6 +30,7 @@ export function Navbar() {
   const { theme, toggleTheme } = useThemeStore();
 
   const location = useLocation();
+  const navigate = useNavigate();
 
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -37,6 +39,10 @@ export function Navbar() {
 
 
   const openSearch = useCallback(() => setSearchOpen(true), []);
+  const handleLogout = () => {
+    logout();
+    navigate('/', { replace: true });
+  };
 
   useSearchShortcut(openSearch);
 
@@ -49,9 +55,9 @@ export function Navbar() {
 
     ...(isAuthenticated() ? [
 
-      // { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+      { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
 
-      // { to: '/bookmarks', label: 'Bookmarks', icon: Bookmark },
+      { to: '/bookmarks', label: 'Bookmarks', icon: Bookmark },
 
     ] : []),
 
@@ -165,7 +171,7 @@ export function Navbar() {
 
                 </Link>
 
-                <Button variant="ghost" size="icon" onClick={logout}>
+                <Button variant="ghost" size="icon" onClick={handleLogout}>
 
                   <LogOut className="h-4 w-4" />
 

@@ -128,6 +128,7 @@ const registerSchema = z.object({
 
 export function RegisterPage() {
   const navigate = useNavigate();
+  const setAuth = useAuthStore((s) => s.setAuth);
   const [loading, setLoading] = useState(false);
 
   const { register, handleSubmit, formState: { errors } } = useForm<z.infer<typeof registerSchema>>({
@@ -137,9 +138,10 @@ export function RegisterPage() {
   const onSubmit = async (data: z.infer<typeof registerSchema>) => {
     setLoading(true);
     try {
-      await api.post('/auth/register', data);
-      toast.success('OTP sent to your email');
-      navigate('/verify-otp', { state: { email: data.email } });
+      const res = await api.post<AuthResponse>('/auth/register', data);
+      setAuth(res.user, res.accessToken, res.refreshToken);
+      toast.success('Account created. Welcome!');
+      navigate('/dashboard');
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : 'Registration failed');
     } finally {
