@@ -3,10 +3,15 @@ import dotenv from 'dotenv';
 dotenv.config({ path: '../.env' });
 dotenv.config();
 
+const normalizeUrl = (value: string | undefined, fallback: string) => {
+  if (!value) return fallback;
+  return value.trim().replace(/(^['"]|['"]$)/g, '').replace(/\/$/, '');
+};
+
 export const config = {
   port: parseInt(process.env.PORT || '3001', 10),
   nodeEnv: process.env.NODE_ENV || 'development',
-  frontendUrl: process.env.FRONTEND_URL || 'http://localhost:5173' || '"https://devops-learning-sooty.vercel.app"',
+  frontendUrl: normalizeUrl(process.env.FRONTEND_URL, 'http://localhost:5173'),
   databaseUrl: process.env.DATABASE_URL || '',
   redisUrl: process.env.REDIS_URL || 'redis://localhost:6379',
   jwt: {

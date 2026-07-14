@@ -14,13 +14,13 @@ import commentRoutes from './routes/comments.js';
 
 const app = express();
 
+const normalizeOrigin = (origin: string) => origin.trim().replace(/\/$/, '');
 const allowedOrigins = [
-  ...config.frontendUrl.split(',').map((origin) => origin.trim()),
+  ...config.frontendUrl.split(',').map((origin) => normalizeOrigin(origin)),
   'http://localhost:5173',
   'http://127.0.0.1:5173',
   'http://localhost:3000',
   'http://127.0.0.1:3000',
-  '"https://devops-learning-sooty.vercel.app"'
 ].filter(Boolean);
 
 app.use(helmet());
@@ -31,7 +31,8 @@ app.use(cors({
       return;
     }
 
-    const isAllowed = allowedOrigins.some((allowed) => origin === allowed || origin.startsWith('http://localhost:') || origin.startsWith('http://127.0.0.1:'));
+    const normalizedOrigin = normalizeOrigin(origin);
+    const isAllowed = allowedOrigins.some((allowed) => normalizedOrigin === allowed || normalizedOrigin.startsWith('http://localhost:') || normalizedOrigin.startsWith('http://127.0.0.1:'));
     if (isAllowed) {
       callback(null, true);
       return;
